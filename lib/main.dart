@@ -32,7 +32,7 @@ class _DisponentkaScreenState extends State<DisponentkaScreen> {
   TextEditingController kontroler = TextEditingController();
 
   Future<void> posljiVprasanje() async {
-    const apiKey = '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';
+    const apiKey = String.fromEnvironment('OPENAI_API_KEY');
     const apiUrl = 'https://api.openai.com/v1/chat/completions';
 
     final response = await http.post(
