@@ -1,0 +1,129 @@
+import 'dart:convert';
+import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+
+void main() {
+  runApp(const DisponentkaInesApp());
+}
+
+class DisponentkaInesApp extends StatelessWidget {
+  const DisponentkaInesApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'Disponentka INES',
+      theme: ThemeData.dark(),
+      debugShowCheckedModeBanner: false,
+      home: const DisponentkaScreen(),
+    );
+  }
+}
+
+class DisponentkaScreen extends StatefulWidget {
+  const DisponentkaScreen({super.key});
+
+  @override
+  _DisponentkaScreenState createState() => _DisponentkaScreenState();
+}
+
+class _DisponentkaScreenState extends State<DisponentkaScreen> {
+  final TextEditingController _controller = TextEditingController();
+  String _responseText = '';
+  bool _loading = false;
+
+  static const String _apiKey = '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';
+  static const String _openaiApiUrl = 'https://api.openai.com/v1/chat/completions';
+  static const String _openaiModel = 'gpt-3.5-turbo';
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  Future<void> _sendInstruction(String input) async {
+    final Uri url = Uri.parse(_openaiApiUrl);
+
+    final Map<String, String> headers = {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer $_apiKey',
+    };
+
+    final Map<String, dynamic> body = {
+      'model': _openaiModel,
+      'messages': [
+        {'role': 'system', 'content': 'Ti si AI disponentka za logistiko.'},
+        {'role': 'user', 'content': input},
+      ]
+    };
+
+    setState(() {
+      _loading = true;
+      _responseText = '';
+    });
+
+    try {
+      final http.Response response = await http.post(url, headers: headers, body: jsonEncode(body));
+      if (response.statusCode == 200) {
+        final decoded = jsonDecode(response.body);
+        final String result = decoded['choices']?[0]?['message']?['content'] ?? 'Neznan odgovor iz API-ja.';
+        setState(() {
+          _responseText = result.trim();
+        });
+      } else {
+        setState(() {
+          _responseText = '❌ Napaka ${response.statusCode}: ${response.body}';
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _responseText = '❌ Nepričakovana napaka: $e';
+      });
+    } finally {
+      setState(() {
+        _loading = false;
+      });
+    }
+  }
+
+  void _submit() {
+    final String input = _controller.text.trim();
+    if (input.isNotEmpty) {
+      _sendInstruction(input);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Disponentka INES')),
+      body: Padding(
+        padding: const EdgeInsets.all(20.0),
+        child: Column(
+          children: <Widget>[
+            TextField(
+              controller: _controller,
+              decoration: const InputDecoration(
+                labelText: 'Vnesi nalog (npr. Maribor – Linz)',
+                border: OutlineInputBorder(),
+              ),
+              onSubmitted: (_) => _submit(),
+            ),
+            const SizedBox(height: 10),
+            ElevatedButton(
+              onPressed: _loading ? null : _submit,
+              child: const Text('Pošlji'),
+            ),
+            const SizedBox(height: 20),
+            Expanded(
+              child: SingleChildScrollView(
+                child: Text(_responseText),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
