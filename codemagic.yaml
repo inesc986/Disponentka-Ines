@@ -14,4 +14,4 @@ workflows:
     publishing:
       email:
         recipients:
-          - ines@example.com
+          - ines@logisticne-storitve.com
